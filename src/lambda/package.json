@@ -1,0 +1,47 @@
+{
+  "name": "lambda-edge-404-redirect",
+  "version": "1.0.0",
+  "description": "Lambda@Edge function for micro-frontend 404 redirects",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint *.js",
+    "package": "zip -r function.zip index.js package.json",
+    "local-test": "node test-local.js"
+  },
+  "keywords": [
+    "lambda-edge",
+    "cloudfront", 
+    "404",
+    "redirect",
+    "micro-frontend",
+    "aws"
+  ],
+  "author": "PoC Team",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "eslint": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "*.js",
+      "!jest.config.js",
+      "!test-local.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 85,
+        "functions": 95,
+        "lines": 90,
+        "statements": 90
+      }
+    }
+  }
+}

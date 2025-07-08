@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微前端404重定向PoC系统</title>
+    <meta name="description" content="验证AWS Lambda@Edge方案的子应用404重定向功能">
+    <meta name="keywords" content="微前端,404重定向,Lambda@Edge,CloudFront,PoC">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .header {
+            margin-bottom: 50px;
+            padding: 40px 0;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 15px;
+            font-weight: 300;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header .subtitle {
+            font-size: 1.3em;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background: #4CAF50;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin: 50px 0;
+        }
+        
+        .app-card {
+            background: rgba(255,255,255,0.1);
+            padding: 40px 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .app-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4CAF50, #2196F3, #FF9800);
+        }
+        
+        .app-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255,255,255,0.15);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .app-card h3 {
+            font-size: 2em;
+            margin-bottom: 15px;
+            font-weight: 400;
+        }
+        
+        .app-card .description {
+            margin: 20px 0;
+            opacity: 0.9;
+            line-height: 1.7;
+            font-size: 1.1em;
+        }
+        
+        .app-card .tech-stack {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 25px;
+            font-style: italic;
+        }
+        
+        .app-links {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .app-link {
+            display: inline-block;
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 25px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.3);
+            font-weight: 500;
+        }
+        
+        .app-link:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .app-link.primary {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: rgba(76, 175, 80, 0.5);
+        }
+        
+        .app-link.test {
+            background: rgba(255, 152, 0, 0.3);
+            border-color: rgba(255, 152, 0, 0.5);
+        }
+        
+        .info-section {
+            margin-top: 60px;
+            padding: 40px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            text-align: left;
+        }
+        
+        .info-section h3 {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            font-weight: 400;
+            text-align: center;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .info-item {
+            background: rgba(255,255,255,0.1);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .info-item h4 {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #4CAF50;
+        }
+        
+        .info-item p {
+            line-height: 1.7;
+            opacity: 0.9;
+        }
+        
+        .test-flow {
+            background: rgba(33, 150, 243, 0.1);
+            border-left-color: #2196F3;
+        }
+        
+        .test-flow h4 {
+            color: #2196F3;
+        }
+        
+        .tech-info {
+            background: rgba(255, 152, 0, 0.1);
+            border-left-color: #FF9800;
+        }
+        
+        .tech-info h4 {
+            color: #FF9800;
+        }
+        
+        .footer {
+            margin-top: 60px;
+            padding: 30px;
+            text-align: center;
+            opacity: 0.8;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .footer p {
+            margin: 10px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .app-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .app-card {
+                padding: 30px 20px;
+            }
+            
+            .app-links {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* 加载动画 */
+        .loading {
+            opacity: 0;
+            animation: fadeIn 1s ease-in-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container loading">
+        <div class="header">
+            <h1>微前端404重定向PoC系统</h1>
+            <p class="subtitle">验证AWS Lambda@Edge方案的子应用404重定向功能</p>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                系统运行中
+            </div>
+        </div>
+        
+        <div class="app-grid">
+            <div class="app-card">
+                <h3>Website1</h3>
+                <p class="description">企业网站风格的微前端应用<br>展示传统企业级界面设计和用户体验</p>
+                <p class="tech-stack">技术栈: HTML5 + CSS3 + 响应式设计</p>
+                <div class="app-links">
+                    <a href="/website1/" class="app-link primary">访问应用</a>
+                    <a href="/website1/missing-page" class="app-link test">测试404重定向</a>
+                </div>
+            </div>
+            
+            <div class="app-card">
+                <h3>Website2</h3>
+                <p class="description">现代设计风格的微前端应用<br>展示渐变效果和现代UI元素</p>
+                <p class="tech-stack">技术栈: HTML5 + CSS3 + 动画效果</p>
+                <div class="app-links">
+                    <a href="/website2/" class="app-link primary">访问应用</a>
+                    <a href="/website2/non-existent" class="app-link test">测试404重定向</a>
+                </div>
+            </div>
+            
+            <div class="app-card">
+                <h3>App1</h3>
+                <p class="description">终端风格的单页应用<br>展示命令行界面和极客风格设计</p>
+                <p class="tech-stack">技术栈: HTML5 + CSS3 + JavaScript</p>
+                <div class="app-links">
+                    <a href="/app1/" class="app-link primary">访问应用</a>
+                    <a href="/app1/404-test" class="app-link test">测试404重定向</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h3>404重定向机制说明</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <h4>工作原理</h4>
+                    <p>当用户访问不存在的页面时，AWS Lambda@Edge函数会在全球边缘节点检测到404错误，并根据URL路径自动重定向到对应子应用的首页，确保用户始终保持在正确的应用上下文中。</p>
+                </div>
+                
+                <div class="info-item test-flow">
+                    <h4>测试流程</h4>
+                    <p>点击"测试404重定向"按钮 → 访问不存在的页面 → Lambda@Edge检测404 → 自动重定向到子应用首页。整个过程在毫秒级完成，提供无缝的用户体验。</p>
+                </div>
+                
+                <div class="info-item tech-info">
+                    <h4>技术特点</h4>
+                    <p>采用边缘计算技术，在全球200+个边缘节点处理请求，实现低延迟响应。支持高并发访问，具备自动扩展能力，成本效益高。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>PoC验证目标：</strong>验证AWS Lambda@Edge方案是否满足Hwork微前端需求</p>
+            <p>部署时间: <span id="deployTime">加载中...</span> | 版本: v1.0.0</p>
+        </div>
+    </div>
+    
+    <script>
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('微前端404重定向PoC系统已加载');
+            console.log('页面加载时间:', performance.now().toFixed(2) + 'ms');
+            
+            // 设置部署时间
+            document.getElementById('deployTime').textContent = new Date().toLocaleString('zh-CN');
+            
+            // 添加点击统计和用户提示
+            document.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    const href = e.target.href;
+                    console.log('链接点击:', href);
+                    
+                    // 如果是测试404链接，给用户提示
+                    if (e.target.classList.contains('test')) {
+                        setTimeout(() => {
+                            console.log('这是一个404测试链接，将会重定向到对应子应用首页');
+                        }, 100);
+                    }
+                }
+            });
+            
+            // 性能监控
+            window.addEventListener('load', function() {
+                const loadTime = performance.now();
+                console.log('页面完全加载时间:', loadTime.toFixed(2) + 'ms');
+                
+                // 发送性能数据（在实际项目中可以发送到分析服务）
+                if (loadTime > 3000) {
+                    console.warn('页面加载时间较长:', loadTime.toFixed(2) + 'ms');
+                }
+            });
+            
+            // 添加键盘快捷键支持
+            document.addEventListener('keydown', function(e) {
+                // Ctrl/Cmd + K 快速搜索
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    console.log('快捷键触发: 搜索功能');
+                }
+            });
+        });
+        
+        // 错误处理
+        window.addEventListener('error', function(e) {
+            console.error('页面错误:', e.error);
+        });
+        
+        // 网络状态监控
+        window.addEventListener('online', function() {
+            console.log('网络连接已恢复');
+        });
+        
+        window.addEventListener('offline', function() {
+            console.log('网络连接已断开');
+        });
+    </script>
+</body>
+</html>

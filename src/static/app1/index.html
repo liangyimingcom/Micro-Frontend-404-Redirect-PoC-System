@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App1 - 终端风格微前端应用</title>
+    <meta name="description" content="App1是一个终端风格的微前端子应用，展示命令行界面设计">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+            background: #0a0a0a;
+            color: #00ff00;
+            padding: 20px;
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+        
+        .terminal-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #000;
+            border-radius: 8px;
+            border: 2px solid #00ff00;
+            box-shadow: 
+                0 0 20px rgba(0,255,0,0.3),
+                inset 0 0 20px rgba(0,255,0,0.1);
+            overflow: hidden;
+        }
+        
+        .terminal-header {
+            background: linear-gradient(90deg, #001100, #002200);
+            padding: 10px 20px;
+            border-bottom: 1px solid #00ff00;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .terminal-title {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        
+        .terminal-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .control-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid #00ff00;
+        }
+        
+        .control-btn.close { background: #ff0000; }
+        .control-btn.minimize { background: #ffff00; }
+        .control-btn.maximize { background: #00ff00; }
+        
+        .terminal-body {
+            padding: 20px;
+            min-height: 600px;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0,255,0,0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(0,255,0,0.03) 0%, transparent 50%),
+                linear-gradient(180deg, #000000 0%, #001100 100%);
+        }
+        
+        .terminal-line {
+            margin: 8px 0;
+            line-height: 1.4;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .prompt {
+            color: #ffff00;
+            font-weight: bold;
+        }
+        
+        .command {
+            color: #00ffff;
+        }
+        
+        .output {
+            color: #00ff00;
+            margin-left: 20px;
+        }
+        
+        .error {
+            color: #ff0000;
+        }
+        
+        .warning {
+            color: #ff8800;
+        }
+        
+        .info {
+            color: #0088ff;
+        }
+        
+        .success {
+            color: #00ff88;
+        }
+        
+        .tree-structure {
+            font-family: 'Courier New', monospace;
+            white-space: pre;
+            margin: 10px 0;
+        }
+        
+        .test-commands {
+            background: rgba(0,255,0,0.05);
+            border: 1px solid rgba(0,255,0,0.2);
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .test-link {
+            color: #00ffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+        
+        .test-link:hover {
+            background: rgba(0,255,255,0.2);
+            color: #ffffff;
+            text-shadow: 0 0 5px #00ffff;
+        }
+        
+        .nav-section {
+            background: rgba(255,255,0,0.05);
+            border: 1px solid rgba(255,255,0,0.2);
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .nav-link {
+            color: #ffff00;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+        
+        .nav-link:hover {
+            background: rgba(255,255,0,0.2);
+            color: #ffffff;
+            text-shadow: 0 0 5px #ffff00;
+        }
+        
+        .cursor {
+            animation: blink 1s infinite;
+            background: #00ff00;
+            width: 8px;
+            height: 16px;
+            display: inline-block;
+            margin-left: 2px;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        .stats-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-box {
+            border: 1px solid #00ff00;
+            padding: 10px;
+            border-radius: 4px;
+            background: rgba(0,255,0,0.05);
+        }
+        
+        .stat-label {
+            color: #888888;
+            font-size: 0.9em;
+        }
+        
+        .stat-value {
+            color: #00ff00;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .ascii-art {
+            color: #00ff88;
+            font-size: 0.8em;
+            line-height: 1;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .loading-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(0,255,0,0.2);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #00ffff);
+            width: 0%;
+            animation: loading 3s ease-in-out infinite;
+        }
+        
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .terminal-body {
+                padding: 15px;
+                font-size: 0.9em;
+            }
+            
+            .stats-display {
+                grid-template-columns: 1fr;
+            }
+            
+            .ascii-art {
+                font-size: 0.6em;
+            }
+        }
+        
+        /* 扫描线效果 */
+        .terminal-body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ff00, transparent);
+            animation: scan 2s linear infinite;
+            opacity: 0.3;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateY(-100px); }
+            100% { transform: translateY(600px); }
+        }
+        
+        /* 文字闪烁效果 */
+        .flicker {
+            animation: flicker 0.15s infinite linear;
+        }
+        
+        @keyframes flicker {
+            0% { opacity: 1; }
+            98% { opacity: 1; }
+            99% { opacity: 0.98; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <div class="terminal-title">App1 Terminal Interface v1.0.0</div>
+            <div class="terminal-controls">
+                <div class="control-btn close"></div>
+                <div class="control-btn minimize"></div>
+                <div class="control-btn maximize"></div>
+            </div>
+        </div>
+        
+        <div class="terminal-body">
+            <div class="ascii-art">
+    ╔══════════════════════════════════════════════════════════════╗
+    ║                    APP1 MICRO-FRONTEND                       ║
+    ║                  404 REDIRECT POC SYSTEM                     ║
+    ╚══════════════════════════════════════════════════════════════╝
+            </div>
+            
+            <div class="terminal-line">
+                <span class="prompt">root@app1:~$</span> <span class="command">system-info</span>
+            </div>
+            <div class="terminal-line output">
+                <div>Application: App1 Terminal Interface</div>
+                <div>Version: 1.0.0</div>
+                <div>Architecture: Micro-frontend</div>
+                <div>Runtime: AWS Lambda@Edge + CloudFront</div>
+                <div>Status: <span class="success">ONLINE</span></div>
+                <div>Uptime: <span id="uptime">00:00:00</span></div>
+            </div>
+            
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+            
+            <div class="terminal-line">
+                <span class="prompt">root@app1:~$</span> <span class="command">ls -la /app1/</span>
+            </div>
+            <div class="terminal-line output">
+                <div class="tree-structure">total 42
+drwxr-xr-x  3 root root 4096 Jul  8 13:00 .
+drwxr-xr-x  5 root root 4096 Jul  8 13:00 ..
+-rw-r--r--  1 root root 2048 Jul  8 13:00 index.html
+-rw-r--r--  1 root root 1024 Jul  8 13:00 config.json
+drwxr-xr-x  2 root root 4096 Jul  8 13:00 assets/
+-rwxr-xr-x  1 root root  512 Jul  8 13:00 redirect-handler.js</div>
+            </div>
+            
+            <div class="stats-display">
+                <div class="stat-box">
+                    <div class="stat-label">REQUESTS PROCESSED</div>
+                    <div class="stat-value" id="requestCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">LOAD TIME (MS)</div>
+                    <div class="stat-value" id="loadTime">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">MEMORY USAGE</div>
+                    <div class="stat-value">128MB</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">CPU USAGE</div>
+                    <div class="stat-value" id="cpuUsage">0%</div>
+                </div>
+            </div>
+            
+            <div class="terminal-line">
+                <span class="prompt">root@app1:~$</span> <span class="command">test-404-redirects</span>
+            </div>
+            <div class="terminal-line output">
+                <div>Initializing 404 redirect test suite...</div>
+                <div class="success">✓ Lambda@Edge function loaded</div>
+                <div class="success">✓ CloudFront distribution active</div>
+                <div class="success">✓ Redirect rules configured</div>
+            </div>
+            
+            <div class="test-commands">
+                <div class="terminal-line">
+                    <span class="info">Available test endpoints:</span>
+                </div>
+                <div class="terminal-line output">
+                    <div>├── <a href="/app1/dashboard" class="test-link">dashboard</a> → 404 redirect test</div>
+                    <div>├── <a href="/app1/settings" class="test-link">settings</a> → 404 redirect test</div>
+                    <div>├── <a href="/app1/logs" class="test-link">logs</a> → 404 redirect test</div>
+                    <div>├── <a href="/app1/admin" class="test-link">admin</a> → 404 redirect test</div>
+                    <div>├── <a href="/app1/api/status" class="test-link">api/status</a> → 404 redirect test</div>
+                    <div>├── <a href="/app1/config/database" class="test-link">config/database</a> → 404 redirect test</div>
+                    <div>├── <a href="/app1/tools/monitor" class="test-link">tools/monitor</a> → 404 redirect test</div>
+                    <div>└── <a href="/app1/deep/nested/path/test" class="test-link">deep/nested/path/test</a> → 404 redirect test</div>
+                </div>
+            </div>
+            
+            <div class="terminal-line">
+                <span class="prompt">root@app1:~$</span> <span class="command">navigate --list-apps</span>
+            </div>
+            <div class="terminal-line output">
+                <div>Scanning micro-frontend applications...</div>
+                <div class="success">Found 3 active applications:</div>
+            </div>
+            
+            <div class="nav-section">
+                <div class="terminal-line output">
+                    <div>├── <a href="/website1/" class="nav-link">website1</a> → Enterprise-style application</div>
+                    <div>├── <a href="/website2/" class="nav-link">website2</a> → Modern design application</div>
+                    <div>├── <a href="/app1/" class="nav-link">app1</a> → Terminal-style application (current)</div>
+                    <div>└── <a href="/" class="nav-link">home</a> → Main dashboard</div>
+                </div>
+            </div>
+            
+            <div class="terminal-line">
+                <span class="prompt">root@app1:~$</span> <span class="command">monitor --real-time</span>
+            </div>
+            <div class="terminal-line output">
+                <div>Starting real-time monitoring...</div>
+                <div id="monitorOutput" class="flicker">
+                    <div class="success">● Lambda@Edge: HEALTHY</div>
+                    <div class="success">● CloudFront: ACTIVE</div>
+                    <div class="success">● S3 Origin: ACCESSIBLE</div>
+                    <div class="info">● Redirect Rules: 3 configured</div>
+                    <div class="warning">● Cache Hit Ratio: Optimizing...</div>
+                </div>
+            </div>
+            
+            <div class="terminal-line">
+                <span class="prompt">root@app1:~$</span> <span class="command">help --404-redirect</span>
+            </div>
+            <div class="terminal-line output">
+                <div class="info">404 REDIRECT SYSTEM HELP</div>
+                <div>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+                <div>When you access a non-existent page under /app1/, the system will:</div>
+                <div>1. Detect the 404 error at CloudFront edge locations</div>
+                <div>2. Trigger Lambda@Edge function for processing</div>
+                <div>3. Analyze the request path and extract subdirectory</div>
+                <div>4. Return 302 redirect to /app1/index.html</div>
+                <div>5. Browser automatically navigates to the correct page</div>
+                <div></div>
+                <div class="success">This ensures users stay within the app1 context!</div>
+            </div>
+            
+            <div class="terminal-line">
+                <span class="prompt">root@app1:~$</span> <span class="command">exit</span>
+            </div>
+            <div class="terminal-line output">
+                <div>Session will remain active for testing purposes.</div>
+                <div class="info">Use Ctrl+C to interrupt, Escape to return to main dashboard.</div>
+            </div>
+            
+            <div class="terminal-line">
+                <span class="prompt">root@app1:~$</span> <span class="cursor"></span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 终端初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('App1 Terminal Interface initialized');
+            
+            // 记录加载时间
+            const loadTime = performance.now();
+            document.getElementById('loadTime').textContent = Math.round(loadTime);
+            
+            // 访问计数
+            let requestCount = localStorage.getItem('app1-requests') || 0;
+            requestCount = parseInt(requestCount) + 1;
+            localStorage.setItem('app1-requests', requestCount);
+            
+            // 动画显示计数
+            animateNumber('requestCount', requestCount);
+            
+            // 启动系统监控
+            startSystemMonitoring();
+            
+            // 启动运行时间计时器
+            startUptimeCounter();
+            
+            // 添加点击事件监听
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('test-link')) {
+                    const href = e.target.href;
+                    console.log('Terminal: 404 test command executed ->', href);
+                    
+                    // 终端风格的提示
+                    addTerminalOutput('Executing 404 redirect test...', 'info');
+                    setTimeout(() => {
+                        addTerminalOutput('Lambda@Edge processing request...', 'warning');
+                    }, 500);
+                    setTimeout(() => {
+                        addTerminalOutput('Redirect to /app1/index.html initiated', 'success');
+                    }, 1000);
+                }
+            });
+            
+            // 键盘快捷键
+            document.addEventListener('keydown', function(e) {
+                switch(e.key) {
+                    case 'Escape':
+                        console.log('Terminal: ESC pressed, returning to dashboard');
+                        window.location.href = '/';
+                        break;
+                    case 'F5':
+                        e.preventDefault();
+                        console.log('Terminal: F5 pressed, refreshing interface');
+                        location.reload();
+                        break;
+                    case 'F1':
+                        e.preventDefault();
+                        addTerminalOutput('F1: Help | ESC: Exit | F5: Refresh | Ctrl+1/2/3: Navigate', 'info');
+                        break;
+                    case '1':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            window.location.href = '/website1/';
+                        }
+                        break;
+                    case '2':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            window.location.href = '/website2/';
+                        }
+                        break;
+                    case '3':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            window.location.href = '/';
+                        }
+                        break;
+                }
+            });
+            
+            // 性能监控
+            window.addEventListener('load', function() {
+                const fullLoadTime = performance.now();
+                console.log('Terminal: Full load time:', fullLoadTime.toFixed(2) + 'ms');
+                document.getElementById('loadTime').textContent = Math.round(fullLoadTime);
+            });
+        });
+        
+        // 数字动画效果
+        function animateNumber(elementId, targetValue) {
+            const element = document.getElementById(elementId);
+            let currentValue = 0;
+            const increment = Math.ceil(targetValue / 20);
+            
+            const timer = setInterval(() => {
+                currentValue += increment;
+                if (currentValue >= targetValue) {
+                    currentValue = targetValue;
+                    clearInterval(timer);
+                }
+                element.textContent = currentValue;
+            }, 50);
+        }
+        
+        // 系统监控
+        function startSystemMonitoring() {
+            const cpuElement = document.getElementById('cpuUsage');
+            
+            setInterval(() => {
+                // 模拟CPU使用率变化
+                const cpuUsage = Math.floor(Math.random() * 15) + 5; // 5-20%
+                cpuElement.textContent = cpuUsage + '%';
+                
+                // 更新监控状态
+                updateMonitorStatus();
+            }, 2000);
+        }
+        
+        // 更新监控状态
+        function updateMonitorStatus() {
+            const monitorOutput = document.getElementById('monitorOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            // 随机更新某些状态
+            if (Math.random() > 0.7) {
+                const statuses = [
+                    `<div class="success">● Lambda@Edge: HEALTHY [${timestamp}]</div>`,
+                    `<div class="success">● CloudFront: ACTIVE [${timestamp}]</div>`,
+                    `<div class="success">● S3 Origin: ACCESSIBLE [${timestamp}]</div>`,
+                    `<div class="info">● Redirect Rules: 3 configured [${timestamp}]</div>`,
+                    `<div class="success">● Cache Hit Ratio: ${Math.floor(Math.random() * 20) + 80}% [${timestamp}]</div>`
+                ];
+                
+                monitorOutput.innerHTML = statuses.join('');
+            }
+        }
+        
+        // 运行时间计时器
+        function startUptimeCounter() {
+            const startTime = Date.now();
+            const uptimeElement = document.getElementById('uptime');
+            
+            setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const hours = Math.floor(elapsed / 3600000);
+                const minutes = Math.floor((elapsed % 3600000) / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                
+                uptimeElement.textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        // 添加终端输出
+        function addTerminalOutput(message, type = 'output') {
+            const terminalBody = document.querySelector('.terminal-body');
+            const newLine = document.createElement('div');
+            newLine.className = `terminal-line ${type}`;
+            newLine.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            // 插入到最后一行之前
+            const lastLine = terminalBody.lastElementChild;
+            terminalBody.insertBefore(newLine, lastLine);
+            
+            // 滚动到底部
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+            
+            // 限制输出行数
+            const outputLines = terminalBody.querySelectorAll('.terminal-line');
+            if (outputLines.length > 50) {
+                outputLines[0].remove();
+            }
+        }
+        
+        // 模拟终端命令执行
+        function executeCommand(command) {
+            addTerminalOutput(`root@app1:~$ ${command}`, 'prompt');
+            
+            switch(command) {
+                case 'status':
+                    addTerminalOutput('System Status: ONLINE', 'success');
+                    addTerminalOutput('All services running normally', 'info');
+                    break;
+                case 'clear':
+                    // 清除部分输出
+                    const lines = document.querySelectorAll('.terminal-line');
+                    for (let i = 0; i < lines.length - 10; i++) {
+                        lines[i].style.display = 'none';
+                    }
+                    break;
+                default:
+                    addTerminalOutput(`Command not found: ${command}`, 'error');
+            }
+        }
+        
+        // 错误处理
+        window.addEventListener('error', function(e) {
+            console.error('Terminal Error:', e.error);
+            addTerminalOutput(`ERROR: ${e.error.message}`, 'error');
+        });
+        
+        // 网络状态监控
+        window.addEventListener('online', function() {
+            addTerminalOutput('Network connection restored', 'success');
+        });
+        
+        window.addEventListener('offline', function() {
+            addTerminalOutput('Network connection lost', 'error');
+        });
+        
+        // 页面可见性监控
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('Terminal: Interface hidden');
+            } else {
+                console.log('Terminal: Interface visible');
+                addTerminalOutput('Terminal interface resumed', 'info');
+            }
+        });
+        
+        // 右键菜单禁用（增强终端感觉）
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            addTerminalOutput('Right-click disabled in terminal mode', 'warning');
+        });
+        
+        // 选择文本时的特殊处理
+        document.addEventListener('selectstart', function(e) {
+            if (e.target.classList.contains('test-link') || e.target.classList.contains('nav-link')) {
+                return true;
+            }
+        });
+    </script>
+</body>
+</html>
